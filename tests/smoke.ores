@@ -17,9 +17,7 @@ pub routine main(): int {
     return 4;
   fi
   if !q.enqueue(2, 20) then
-
     return 5;
-
   fi
   if !q.enqueue(5, 50) then
     return 6;
