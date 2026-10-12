@@ -77,8 +77,13 @@ final class LinkedQueueDifferentialTest {
         code.append("  val ").append(variable).append(" = ").append(removalExpression).append(";\n");
         expect(code, variable + ".is_some()", key != null, id);
         if (key != null) {
-            expectInt(code, variable + ".unwrap().key", key, id);
-            expectInt(code, variable + ".unwrap().value", value, id);
+            // Unwrap a returned owned QueueEntry only once; its fields are
+            // read from the same detached snapshot.
+            String entry = "entry_" + step;
+            code.append("  val ").append(entry).append(" = ").append(variable)
+                    .append(".unwrap();\n");
+            expectInt(code, entry + ".key", key, id);
+            expectInt(code, entry + ".value", value, id);
         }
     }
 
