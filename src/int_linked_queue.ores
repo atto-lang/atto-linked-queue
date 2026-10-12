@@ -281,7 +281,9 @@ define pub class IntLinkedQueue as
 
   // O(capacity). Does not retain obsolete values or internal aliases.
   pub clear() -> void {
-    if !self.ready; do return; fi
+    if !self.ready then
+      return;
+    fi
     for let i = 0; i < self.capacity; i++ do
       self.previous.set(i, -1);
       self.following.set(i, -1);
