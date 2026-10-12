@@ -2,7 +2,7 @@
 // native LLVM Array<int> lowering still needs to be implemented.
 import class IntLinkedQueue from "../src/int_linked_queue";
 
-pub routine main(): int {
+pub routine main() -> int {
   val IntLinkedQueue queue = new IntLinkedQueue(16);
   if !queue.initialize() then
     return 1;
