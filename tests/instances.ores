@@ -1,0 +1,26 @@
+// Ensure mutable field initializers allocate distinct arrays for each queue.
+// Ensure returned ordered_keys is a snapshot, not a live alias.
+import class IntLinkedQueue from "../src/int_linked_queue";
+
+pub routine main(): int {
+  let IntLinkedQueue left = new IntLinkedQueue(4);
+  let IntLinkedQueue right = new IntLinkedQueue(4);
+  if !left.initialize(); do return 1; fi
+  if !right.initialize(); do return 2; fi
+  if !left.enqueue(1, 11); do return 3; fi
+  if !right.enqueue(1, 99); do return 4; fi
+  if left.get(1).unwrap() != 11; do return 5; fi
+  if right.get(1).unwrap() != 99; do return 6; fi
+
+  let mut Array<int> snapshot = left.ordered_keys();
+  snapshot.set(0, 2);
+  if left.first().unwrap().key != 1; do return 7; fi
+  if !left.validate(); do return 8; fi
+
+  left.clear();
+  if !left.is_empty(); do return 9; fi
+  if !right.contains(1); do return 10; fi
+  if right.get(1).unwrap() != 99; do return 11; fi
+  if !right.validate(); do return 12; fi
+  return 0;
+}
