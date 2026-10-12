@@ -1,0 +1,16 @@
+// EXPECT COMPILE FAILURE: a mutable receiver cannot alias a second mutable
+// loan, including if both loans are passed during one call.
+import class IntLinkedQueue from "../../src/int_linked_queue";
+
+fnc illegal(borrow mut IntLinkedQueue a, borrow mut IntLinkedQueue b) -> void {
+  a.enqueue(0, 10);
+  b.enqueue(1, 20);
+  return;
+}
+
+pub fnc main() -> int {
+  val IntLinkedQueue queue = new IntLinkedQueue(4);
+  queue.initialize();
+  illegal(rt borrow mut queue, rt borrow mut queue);
+  return 0;
+}
