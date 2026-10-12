@@ -342,6 +342,10 @@ define pub class IntLinkedQueue as
         if self.following.get(i) != -1 then
           return false;
         fi
+        // Removed nodes must not retain payload bytes.
+        if self.values.get(i) != 0 then
+          return false;
+        fi
       fi
     done
     if active != self.length then

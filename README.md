@@ -21,7 +21,7 @@ One mutable owner per queue, with explicit `mut self` receivers on all mutating 
 ```ores
 import class IntLinkedQueue from "./src/int_linked_queue";
 
-pub routine main(): int {
+pub routine main() -> int {
   val IntLinkedQueue queue = new IntLinkedQueue(16);
   if !queue.initialize() then
     return 1;
@@ -36,4 +36,6 @@ pub routine main(): int {
 
 See examples/basic.ores, docs/CONCURRENCY.md, docs/FINAL_FIELDS_RFC.md and tests/contract.md for details. Source tests cover smoke, stress, boundaries, per-instance isolation and intentional ownership/privacy failures.
 
-A formatter change for canonical `if condition then` lives in [oreslang-format PR #35](https://github.com/ores-truffle-oreslang/oreslang-format/pull/35); the proposed final-field compiler support is tracked in [Java issue #758](https://github.com/ores-truffle-oreslang/oreslang-source.java/issues/758).\n\nOutstanding work is tracked in [native compiler parity](../../issues/1), [generic queue support](../../issues/2) and [actor/RW concurrency adapters](../../issues/3).
+A formatter change for canonical `if condition then` lives in [oreslang-format PR #35](https://github.com/ores-truffle-oreslang/oreslang-format/pull/35); the proposed final-field compiler support is tracked in [Java issue #758](https://github.com/ores-truffle-oreslang/oreslang-source.java/issues/758).
+
+Outstanding work is tracked in [native compiler parity](../../issues/1), [generic queue support](../../issues/2) and [actor/RW concurrency adapters](../../issues/3).
