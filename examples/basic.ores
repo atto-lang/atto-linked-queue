@@ -2,16 +2,19 @@
 // native LLVM Array<int> lowering still needs to be implemented.
 import class IntLinkedQueue from "../src/int_linked_queue";
 
-pub routine main(): int {
-  let IntLinkedQueue queue = new IntLinkedQueue(16);
-  if !queue.initialize(); do return 1; fi
-
+pub routine main() -> int {
+  val IntLinkedQueue queue = new IntLinkedQueue(16);
+  if !queue.initialize() then
+    return 1;
+  fi
   queue.enqueue(4, 100);
   queue.enqueue(9, 200);
   queue.add_to_front(3, 90);
 
   val first = queue.dequeue();
-  if !first.is_some(); do return 2; fi
+  if !first.is_some() then
+    return 2;
+  fi
   stdio.println(first.unwrap().value); // 90
   stdio.println(queue.get(9).unwrap()); // 200
   stdio.println(queue.size());          // 2
