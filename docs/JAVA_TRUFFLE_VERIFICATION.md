@@ -28,3 +28,31 @@ The adapter strips test-file *import declarations only for single-unit JUnit com
 [Funded exact-source Java run #38317989469](https://github.com/agent-pontifex/agent-pontifex-daemon/actions/runs/38317989469) passed 26/26 tests, including dedicated borrowed-argument evaluation-order regressions in [Java PR #768](https://github.com/ores-truffle-oreslang/oreslang-source.java/pull/768). This is an execution test and compiler negative-test gate, **not** evidence that native LLVM Array lowering, multi-threaded race freedom, actor isolation or generic `LinkedQueue<K,V>` are complete.
 
 For concurrent deployment, continue to own the queue through a single actor state callback and prove the single-flight scheduler property before claiming that separate messages are linearizable. Reader-writer locks remain a separate shared-memory adapter design, not an implicit property of `mut self`.
+
+
+## Independent seeded differential model
+
+`tests/integration/java/LinkedQueueDifferentialTest.java` generates deterministic
+Oreslang programs from a Java-only reference model (`ArrayList` insertion
+order and `Map` of active values). The generated Oreslang performs every
+operation using `IntLinkedQueue`, then checks return values, occupancy,
+position order, head/tail payload snapshots, and `validate()` after every step.
+
+The oracle uses two reproducible seeds with 64 mixed operations each,
+including invalid out-of-range keys and anchors, failed duplicate insertions,
+removal/reuse, clear, and both-end operations. The generator's Java data
+structures are **test infrastructure only** and are never imported by the
+Oreslang program.
+
+Run via the same compiler checkout and source-root property:
+
+```bash
+mvn -B -ntp \
+  -Dtest=LinkedQueueIntegrationTest,LinkedQueueDifferentialTest \
+  -Doreslang.linkedQueueRoot=/absolute/path/to/oreslang-linked-queue \
+  -Dsurefire.useFile=false test
+```
+
+This checks single-owner behavioral equivalence, not thread safety, LLVM
+lowering, or randomized exhaustive proof. Failing seed values can be rerun
+deterministically.
