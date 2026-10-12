@@ -2,7 +2,7 @@
 // A queue user may not mutate pointers or read/modify metadata directly.
 import class IntLinkedQueue from "../../src/int_linked_queue";
 
-pub fnc main(): int {
+pub fnc main() -> int {
   val IntLinkedQueue q = new IntLinkedQueue(8);
   q.initialize();
   q.following.set(0, 7); // privacy and exclusive ownership violation
