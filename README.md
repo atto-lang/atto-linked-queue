@@ -16,4 +16,22 @@ The TypeScript original has arbitrary K/V, iterator, random-key and async method
 
 One mutable owner per queue. A borrow checker should forbid simultaneous mutable aliases while allowing immutable readers; it cannot prove logical FIFO correctness or that a sequence of several calls is atomic. The default deployment is actor-confined with serialized mutations, avoiding any lock. A future shared-memory wrapper may use reader/writer guards, but they must be nonescaping, cancellation-safe and not held over await. Actor scheduler carriers must never park on a contested lock.
 
-See docs/CONCURRENCY.md and tests/contract.md for the exact invariants and validation gates.
+## Example
+
+```ores
+import class IntLinkedQueue from "./src/int_linked_queue";
+
+pub routine main(): int {
+  let IntLinkedQueue queue = new IntLinkedQueue(16);
+  if !queue.initialize(); do return 1; fi
+  queue.enqueue(3, 42);
+  queue.enqueue(4, 99);
+  val entry = queue.dequeue().unwrap();
+  stdio.println(entry.value); // 42
+  return 0;
+}
+```
+
+See examples/basic.ores, docs/CONCURRENCY.md and tests/contract.md for details. Source tests currently include smoke, stress, per-instance isolation and two intentionally failing ownership/privacy fixtures.
+
+Outstanding work is tracked in [native compiler parity](../../issues/1), [generic queue support](../../issues/2) and [actor/RW concurrency adapters](../../issues/3).
