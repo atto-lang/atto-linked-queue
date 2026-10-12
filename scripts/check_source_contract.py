@@ -61,7 +61,7 @@ for method in MUTATORS:
     if declarations.count(method) != 1 or not re.search(expression, declarations_source):
         errors.append(f"src/int_linked_queue.ores: {method} must appear once with mut self")
 for method in READERS:
-    expression = rf"(?m)^\s*pub\s+{re.escape(method)}\s*\("
+    expression = rf"(?m)^\s*pub\s+{re.escape(method)}\s*\((?!\s*mut\s+self\s*\))"
     if declarations.count(method) != 1 or not re.search(expression, declarations_source):
         errors.append(f"src/int_linked_queue.ores: {method} must appear once without mut self")
 for field in ("previous", "following", "values", "occupied"):
