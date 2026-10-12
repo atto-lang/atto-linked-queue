@@ -24,11 +24,13 @@ Not ported yet: arbitrary generic key/value types, unbounded growth, hashing, ra
 - tests/smoke.ores: empty/singleton/middle/head/tail, insertion at ends and anchors, rejection as no-op, value zero vs absence, reuse, clear.
 - tests/stress.ores: repeated relinks under validate(), full capacity, mass removals and reuse.
 - tests/edge_cases.ores: capacity boundaries, uninitialized rejection, failed-insert atomicity, detached snapshots and repeated clear.
+- tests/relink_matrix.ores: singleton capacity, insertion at both ends, middle removal, key reuse and FIFO draining (source fixture, not yet executed).
 - tests/instances.ores: backing-array isolation and snapshot independence.
 - tests/negative/aliasing.ores and tests/negative/double_mut_borrow.ores: expected rejection of overlapping exclusive aliases.
 - tests/negative/readonly_receiver.ores and tests/negative/readonly_binding.ores: expected rejection of mutation through readonly access.
 - tests/negative/escaped_mutation.ores: expected rejection of external mutable field access.
-- The tests return 0 on success and a distinct nonzero failure number.
+- The Oreslang fixtures return 0 on success and a distinct nonzero failure number.
+- tests/test_source_checker.py: six **executed Python regression tests** for the source checker, including commented-out declaration spoofing, receiver changes, duplicate observer declarations and mutable backing-array declarations.
 
 ## Execution status
 
@@ -52,3 +54,9 @@ A borrow checker can establish *memory access exclusion* under the correct owner
 Every mutating method now uses an explicit `mut self` receiver. Sources use multiline `if condition then` with no semicolon before `then`; [oreslang-format PR #35](https://github.com/ores-truffle-oreslang/oreslang-format/pull/35) updates the formatter for this canonical output. Statements on distinct lines may omit semicolons in Java's parser where the grammar permits, but internal `for` separators and other punctuation are not optional.
 
 The four backing arrays remain `let mut`: two-phase `initialize()` rebinds them after constructing full replacement storage. Stable `final mut` fields require a constructor-only allocation design and compiler changes documented in [FINAL_FIELDS_RFC.md](../docs/FINAL_FIELDS_RFC.md) and [Java issue #758](https://github.com/ores-truffle-oreslang/oreslang-source.java/issues/758).
+
+## 2026-10-12 follow-up hardening
+
+The read-only observer receiver check was corrected after a failing adversarial test exposed that an anchored method-name regex could still match `pub contains(mut self)`. The negative lookahead now rejects that signature. `validate()` additionally checks that vacated slots retain no payload values. These Oreslang changes are not yet compiler- or runtime-tested.
+
+Exact-source Python validation (not Oreslang execution) passed in [funded CI #38312417357](https://github.com/agent-pontifex/agent-pontifex-daemon/actions/runs/38312417357): six adversarial unit tests and the full static checker. All 14 mirrored source/test Git blob SHAs were identical to the checked queue PR tree, except that the corrected checker was mirrored from its subsequent commit `af27743ab696cd0e957739c24ac04e2bb47ae69c` and verified separately byte-for-byte.
