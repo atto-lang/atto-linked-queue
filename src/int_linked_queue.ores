@@ -57,16 +57,13 @@ define pub class IntLinkedQueue as
     return true;
   }
 
-
   pub size() -> int {
     return self.length;
   }
 
-
   pub is_empty() -> bool {
     return self.length == 0;
   }
-
 
   pub contains(int key) -> bool {
     if !self.ready then
@@ -89,14 +86,12 @@ define pub class IntLinkedQueue as
     return Some(self.values.get(key));
   }
 
-
   pub first() -> Option<QueueEntry> {
     if self.head == -1 then
       return None;
     fi
     return Some(new QueueEntry(self.head, self.values.get(self.head)));
   }
-
 
   pub last() -> Option<QueueEntry> {
     if self.tail == -1 then
@@ -136,7 +131,6 @@ define pub class IntLinkedQueue as
     return true;
   }
 
-
   pub add_to_front(mut self)(int key, int value) -> bool {
     if !self.ready then
       return false;
@@ -165,7 +159,6 @@ define pub class IntLinkedQueue as
     self.length = self.length + 1;
     return true;
   }
-
 
   pub insert_before(mut self)(int anchor, int key, int value) -> bool {
     if !self.contains(anchor) then
@@ -197,7 +190,6 @@ define pub class IntLinkedQueue as
     return true;
   }
 
-
   pub insert_after(mut self)(int anchor, int key, int value) -> bool {
     if !self.contains(anchor) then
       return false;
@@ -227,7 +219,6 @@ define pub class IntLinkedQueue as
     self.length = self.length + 1;
     return true;
   }
-
 
   pub remove(mut self)(int key) -> Option<QueueEntry> {
     if !self.contains(key) then
@@ -262,7 +253,6 @@ define pub class IntLinkedQueue as
     return removed;
   }
 
-
   pub dequeue(mut self)() -> Option<QueueEntry> {
     if self.head == -1 then
       return None;
@@ -270,14 +260,12 @@ define pub class IntLinkedQueue as
     return self.remove(self.head);
   }
 
-
   pub remove_last(mut self)() -> Option<QueueEntry> {
     if self.tail == -1 then
       return None;
     fi
     return self.remove(self.tail);
   }
-
 
   // O(capacity). Does not retain obsolete values or internal aliases.
   pub clear(mut self)() -> void {
@@ -296,7 +284,6 @@ define pub class IntLinkedQueue as
     return;
   }
 
-
   // Snapshot, never a mutable internal view.
   pub ordered_keys() -> Array<int> {
     let mut Array<int> result = new Array<int>();
@@ -307,7 +294,6 @@ define pub class IntLinkedQueue as
     done
     return result;
   }
-
 
   // Validation is intentionally O(capacity) and never required on the hot path.
   pub validate() -> bool {
