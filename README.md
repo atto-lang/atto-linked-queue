@@ -14,7 +14,7 @@ The TypeScript original has arbitrary K/V, iterator, random-key and async method
 
 ## Ownership and concurrency
 
-One mutable owner per queue. A borrow checker should forbid simultaneous mutable aliases while allowing immutable readers; it cannot prove logical FIFO correctness or that a sequence of several calls is atomic. The default deployment is actor-confined with serialized mutations, avoiding any lock. A future shared-memory wrapper may use reader/writer guards, but they must be nonescaping, cancellation-safe and not held over await. Actor scheduler carriers must never park on a contested lock.
+One mutable owner per queue, with explicit `mut self` receivers on all mutating operations. A borrow checker should forbid simultaneous mutable aliases while allowing immutable readers; it cannot prove logical FIFO correctness or that a sequence of several calls is atomic. The default deployment is actor-confined with serialized mutations, avoiding any lock. A future shared-memory wrapper may use reader/writer guards, but they must be nonescaping, cancellation-safe and not held over await. Actor scheduler carriers must never park on a contested lock.
 
 ## Example
 
@@ -22,8 +22,10 @@ One mutable owner per queue. A borrow checker should forbid simultaneous mutable
 import class IntLinkedQueue from "./src/int_linked_queue";
 
 pub routine main(): int {
-  let IntLinkedQueue queue = new IntLinkedQueue(16);
-  if !queue.initialize(); do return 1; fi
+  val IntLinkedQueue queue = new IntLinkedQueue(16);
+  if !queue.initialize() then
+    return 1;
+  fi
   queue.enqueue(3, 42);
   queue.enqueue(4, 99);
   val entry = queue.dequeue().unwrap();
@@ -32,6 +34,6 @@ pub routine main(): int {
 }
 ```
 
-See examples/basic.ores, docs/CONCURRENCY.md and tests/contract.md for details. Source tests currently include smoke, stress, per-instance isolation and two intentionally failing ownership/privacy fixtures.
+See examples/basic.ores, docs/CONCURRENCY.md, docs/FINAL_FIELDS_RFC.md and tests/contract.md for details. Source tests cover smoke, stress, boundaries, per-instance isolation and intentional ownership/privacy failures.
 
-Outstanding work is tracked in [native compiler parity](../../issues/1), [generic queue support](../../issues/2) and [actor/RW concurrency adapters](../../issues/3).
+A formatter change for canonical `if condition then` lives in [oreslang-format PR #35](https://github.com/ores-truffle-oreslang/oreslang-format/pull/35); the proposed final-field compiler support is tracked in [Java issue #758](https://github.com/ores-truffle-oreslang/oreslang-source.java/issues/758).\n\nOutstanding work is tracked in [native compiler parity](../../issues/1), [generic queue support](../../issues/2) and [actor/RW concurrency adapters](../../issues/3).
