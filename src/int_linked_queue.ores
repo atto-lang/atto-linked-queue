@@ -16,7 +16,8 @@ pub define class IntLinkedQueue as
   let int length = 0;
   let bool ready = false;
 
-  // The slot is the key itself: no raw pointers or freelist ABA.
+  // Direct-address keys are reused: stored QueueEntry snapshots are NOT
+  // generational handles; a stale key may refer to a later insertion.
   // -1 means no neighbor. occupied is 0 or 1.
   let Array<int> previous = new Array<int>();
   let Array<int> following = new Array<int>();
@@ -29,12 +30,23 @@ pub define class IntLinkedQueue as
     if self.ready; do return false; fi
     if self.capacity < 1; do return false; fi
     if self.capacity > 65536; do return false; fi
+    // Allocate the complete backing store before publishing any field.
+    // On an allocation failure, the existing uninitialized queue is unchanged
+    // rather than being left with four differently sized partial arrays.
+    let mut Array<int> new_previous = new Array<int>();
+    let mut Array<int> new_following = new Array<int>();
+    let mut Array<int> new_values = new Array<int>();
+    let mut Array<int> new_occupied = new Array<int>();
     for let i = 0; i < self.capacity; i++ do
-      self.previous.add(-1);
-      self.following.add(-1);
-      self.values.add(0);
-      self.occupied.add(0);
+      new_previous.add(-1);
+      new_following.add(-1);
+      new_values.add(0);
+      new_occupied.add(0);
     done
+    self.previous = new_previous;
+    self.following = new_following;
+    self.values = new_values;
+    self.occupied = new_occupied;
     self.ready = true;
     return true;
   }
@@ -169,6 +181,10 @@ pub define class IntLinkedQueue as
     let int later = self.following.get(key);
     let int value = self.values.get(key);
 
+    // Preconstruct the returned owned object before destructive mutation.
+    // An allocation/Option construction failure must not lose an item.
+    val Option<QueueEntry> removed = Some(new QueueEntry(key, value));
+
     if earlier == -1; do
       self.head = later;
     else
@@ -187,7 +203,7 @@ pub define class IntLinkedQueue as
     self.values.set(key, 0);
     self.occupied.set(key, 0);
     self.length = self.length - 1;
-    return Some(new QueueEntry(key, value));
+    return removed;
   }
 
   pub dequeue(): Option<QueueEntry> {
@@ -262,6 +278,19 @@ pub define class IntLinkedQueue as
       current = self.following.get(current);
     done
     if current != -1; do return false; fi
-    return prior == self.tail;
+    if prior != self.tail; do return false; fi
+
+    // Independently walk the reverse chain: detect broken back-links,
+    // orphaned active slots, and head/tail disagreement.
+    let int reverse_current = self.tail;
+    let int later = -1;
+    for let inspected = 0; inspected < self.length; inspected++ do
+      if !self.contains(reverse_current); do return false; fi
+      if self.following.get(reverse_current) != later; do return false; fi
+      later = reverse_current;
+      reverse_current = self.previous.get(reverse_current);
+    done
+    if reverse_current != -1; do return false; fi
+    return later == self.head;
   }
 end
