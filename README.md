@@ -12,6 +12,11 @@ IntLinkedQueue exposes enqueue, add_to_front, dequeue, remove_last, remove(key),
 
 The TypeScript original has arbitrary K/V, iterator, random-key and async methods. They are tracked as future work; the source's three insertion methods are advertised in its README but currently throw not implemented.
 
+
+## Java/Truffle verification
+
+The single-owner Oreslang queue now compiles and runs under the Java/Truffle source compiler with no Java/JS code in the library. An exact-source, funded [GraalVM CI run #38316842944](https://github.com/agent-pontifex/agent-pontifex-daemon/actions/runs/38316842944) compiled and executed all five positive fixtures (`smoke`, `stress`, `instances`, `edge_cases`, `relink_matrix`) and verified all five negative fixtures fail. Two formerly accepted simultaneous mutable-borrow arguments are rejected by the merged [Java borrow checker fix #767](https://github.com/ores-truffle-oreslang/oreslang-source.java/pull/767). The same run passed 18 ownership-related JUnit tests, including six invocation-borrow regressions. The LLVM backend and true multithreaded/actor runtime have **not** been verified; this remains an experimental bounded-integer queue.
+
 ## Ownership and concurrency
 
 One mutable owner per queue, with explicit `mut self` receivers on all mutating operations. A borrow checker should forbid simultaneous mutable aliases while allowing immutable readers; it cannot prove logical FIFO correctness or that a sequence of several calls is atomic. The default deployment is actor-confined with serialized mutations, avoiding any lock. A future shared-memory wrapper may use reader/writer guards, but they must be nonescaping, cancellation-safe and not held over await. Actor scheduler carriers must never park on a contested lock.
@@ -36,6 +41,6 @@ pub routine main() -> int {
 
 See examples/basic.ores, docs/CONCURRENCY.md, docs/FINAL_FIELDS_RFC.md and tests/contract.md for details. Source tests cover smoke, stress, boundaries, per-instance isolation and intentional ownership/privacy failures.
 
-A formatter change for canonical `if condition then` lives in [oreslang-format PR #35](https://github.com/ores-truffle-oreslang/oreslang-format/pull/35); the proposed final-field compiler support is tracked in [Java issue #758](https://github.com/ores-truffle-oreslang/oreslang-source.java/issues/758).
+The canonical `if condition then` formatter is merged as [oreslang-format PR #35](https://github.com/ores-truffle-oreslang/oreslang-format/pull/35); the proposed final-field compiler support is tracked in [Java issue #758](https://github.com/ores-truffle-oreslang/oreslang-source.java/issues/758).
 
 Outstanding work is tracked in [native compiler parity](../../issues/1), [generic queue support](../../issues/2) and [actor/RW concurrency adapters](../../issues/3).
