@@ -2,7 +2,7 @@
 // Ensure returned ordered_keys is a snapshot, not a live alias.
 import class IntLinkedQueue from "../src/int_linked_queue";
 
-pub routine main(): int {
+pub routine main() -> int {
   val IntLinkedQueue left = new IntLinkedQueue(4);
   val IntLinkedQueue right = new IntLinkedQueue(4);
   if !left.initialize() then
