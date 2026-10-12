@@ -2,7 +2,7 @@
 // Independent invariants are checked after every single mutation.
 import class IntLinkedQueue from "../src/int_linked_queue";
 
-pub routine main(): int {
+pub routine main() -> int {
   val IntLinkedQueue q = new IntLinkedQueue(64);
   if !q.initialize() then
     return 1;
