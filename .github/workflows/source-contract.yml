@@ -1,0 +1,16 @@
+name: source-contract-static
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check source style and explicit mutable receivers
+        run: python3 scripts/check_source_contract.py
