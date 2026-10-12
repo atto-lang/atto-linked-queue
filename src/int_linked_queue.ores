@@ -26,7 +26,7 @@ define pub class IntLinkedQueue as
 
   // Required once after construction. Refuse repeat initialization.
   // Bound allocation up front to prevent unbounded array exhaustion.
-  pub initialize() -> bool {
+  pub initialize(mut self)() -> bool {
     if self.ready then
       return false;
     fi
@@ -107,7 +107,7 @@ define pub class IntLinkedQueue as
 
   // False means duplicate, invalid key, or not initialized.
   // Rejection must leave head/tail/count/links unchanged.
-  pub enqueue(int key, int value) -> bool {
+  pub enqueue(mut self)(int key, int value) -> bool {
     if !self.ready then
       return false;
     fi
@@ -137,7 +137,7 @@ define pub class IntLinkedQueue as
   }
 
 
-  pub add_to_front(int key, int value) -> bool {
+  pub add_to_front(mut self)(int key, int value) -> bool {
     if !self.ready then
       return false;
     fi
@@ -167,7 +167,7 @@ define pub class IntLinkedQueue as
   }
 
 
-  pub insert_before(int anchor, int key, int value) -> bool {
+  pub insert_before(mut self)(int anchor, int key, int value) -> bool {
     if !self.contains(anchor) then
       return false;
     fi
@@ -198,7 +198,7 @@ define pub class IntLinkedQueue as
   }
 
 
-  pub insert_after(int anchor, int key, int value) -> bool {
+  pub insert_after(mut self)(int anchor, int key, int value) -> bool {
     if !self.contains(anchor) then
       return false;
     fi
@@ -229,7 +229,7 @@ define pub class IntLinkedQueue as
   }
 
 
-  pub remove(int key) -> Option<QueueEntry> {
+  pub remove(mut self)(int key) -> Option<QueueEntry> {
     if !self.contains(key) then
       return None;
     fi
@@ -263,7 +263,7 @@ define pub class IntLinkedQueue as
   }
 
 
-  pub dequeue() -> Option<QueueEntry> {
+  pub dequeue(mut self)() -> Option<QueueEntry> {
     if self.head == -1 then
       return None;
     fi
@@ -271,7 +271,7 @@ define pub class IntLinkedQueue as
   }
 
 
-  pub remove_last() -> Option<QueueEntry> {
+  pub remove_last(mut self)() -> Option<QueueEntry> {
     if self.tail == -1 then
       return None;
     fi
@@ -280,7 +280,7 @@ define pub class IntLinkedQueue as
 
 
   // O(capacity). Does not retain obsolete values or internal aliases.
-  pub clear() -> void {
+  pub clear(mut self)() -> void {
     if !self.ready then
       return;
     fi
