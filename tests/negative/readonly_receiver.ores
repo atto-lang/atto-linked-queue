@@ -6,6 +6,7 @@ fnc illegal(borrow IntLinkedQueue queue) -> bool {
   return queue.enqueue(0, 10);
 }
 
+
 pub fnc main() -> int {
   val IntLinkedQueue queue = new IntLinkedQueue(2);
   queue.initialize();
