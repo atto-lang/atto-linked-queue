@@ -44,3 +44,7 @@ See examples/basic.ores, docs/CONCURRENCY.md, docs/FINAL_FIELDS_RFC.md and tests
 The canonical `if condition then` formatter is merged as [oreslang-format PR #35](https://github.com/ores-truffle-oreslang/oreslang-format/pull/35); the proposed final-field compiler support is tracked in [Java issue #758](https://github.com/ores-truffle-oreslang/oreslang-source.java/issues/758).
 
 Outstanding work is tracked in [native compiler parity](../../issues/1), [generic queue support](../../issues/2) and [actor/RW concurrency adapters](../../issues/3).
+
+## Development policy: no Python
+
+Python is prohibited in this repository for source code, tests, build tooling, code generation, CI, and automation. Existing Python checks must be ported to behavior-equivalent Rust with equivalent adversarial coverage before removal. Do not add Python source/notebooks, Python dependency manifests, `python`/`python3`, `pip`, `pytest`, `poetry`, `uv`, or Python setup actions. Rust tooling must pass `cargo fmt`, `cargo clippy -- -D warnings`, and `cargo test`.
