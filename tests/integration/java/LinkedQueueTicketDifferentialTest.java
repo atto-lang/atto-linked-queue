@@ -121,6 +121,45 @@ final class LinkedQueueTicketDifferentialTest {
                 .append("  val IntLinkedQueue q = new IntLinkedQueue(")
                 .append(CAPACITY).append(");\n");
         expect(src, "q.initialize()", true, id);
+        // Directed sequence guarantees every admission path and both successful
+        // and stale ticket-removal paths, regardless of random seed.
+        expect(src, "q.enqueue(1, 11)", true, id);
+        values.put(1, 11);
+        order.add(1);
+        admit(src, 1, 11, 1000, generations, tickets, id);
+        expect(src, "q.add_to_front(0, 0)", true, id);
+        values.put(0, 0);
+        order.addFirst(0);
+        admit(src, 0, 0, 1001, generations, tickets, id);
+        expect(src, "q.insert_before(1, 2, 22)", true, id);
+        values.put(2, 22);
+        order.add(order.indexOf(1), 2);
+        admit(src, 2, 22, 1002, generations, tickets, id);
+        expect(src, "q.insert_after(2, 3, 33)", true, id);
+        values.put(3, 33);
+        order.add(order.indexOf(2) + 1, 3);
+        admit(src, 3, 33, 1003, generations, tickets, id);
+        snapshot(src, order, values, generations, tickets, id);
+
+        checkRemoval(src, "q.remove_ticket(ticket_1002)", 2, values.remove(2), 1004, id);
+        order.remove(Integer.valueOf(2));
+        expect(src, "q.remove_ticket(ticket_1002).is_some()", false, id);
+        expect(src, "q.enqueue(2, 220)", true, id);
+        values.put(2, 220);
+        order.add(2);
+        admit(src, 2, 220, 1005, generations, tickets, id);
+        snapshot(src, order, values, generations, tickets, id);
+
+        src.append("  q.clear();\\n");
+        values.clear();
+        order.clear();
+        snapshot(src, order, values, generations, tickets, id);
+        expect(src, "q.enqueue(1, 111)", true, id);
+        values.put(1, 111);
+        order.add(1);
+        admit(src, 1, 111, 1006, generations, tickets, id);
+        snapshot(src, order, values, generations, tickets, id);
+
         for (int step = 0; step < steps; step++) {
             int operation = random.nextInt(9);
             int key = random.nextInt(CAPACITY + 2) - 1;
