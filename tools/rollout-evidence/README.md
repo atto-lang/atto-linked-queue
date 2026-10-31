@@ -18,7 +18,7 @@ it remains NOT_EXECUTED. A missing implementation must not be replaced with a st
 | queue-structure | java | execution | Bounded occupancy and prev/next integrity across all operations |
 | stale-index | java | execution | Reject invalid/stale indices without mutation |
 | array-backend | java | execution | Require actual array-backed guest execution on claimed backend |
-| negative-admission | java | rejection | Negative fixtures must fail for the expected diagnostic with no output artifact; this is rejection evidence only. |
+| negative-admission | java | rejection | Negative fixtures must fail for the expected diagnostic with no output artifact; this is rejection evidence only. |\n| generation-tickets | java | execution | Execute the Oreslang ticket fixture on the exact library and compiler head; verify stale tickets reject reuse |\n| generation-differential | java | execution | Execute LinkedQueueTicketDifferentialTest: deterministic prelude, three generated seeded traces, independent state oracle, no host-only substitution |
 
 The compiler profiles deliberately require executable coverage for async I/O,
 ownership, indexing, exports, generators and supervision. Unsupported features
