@@ -61,7 +61,9 @@ deterministically.
 
 `tests/integration/java/LinkedQueueTicketDifferentialTest.java` independently
 models active keys, list order, slot generations and previously issued tickets.
-A directed prelude guarantees successful enqueue, add_to_front, insert_before,\ninsert_after, valid ticket removal, stale ticket rejection and clear/reuse.\nThree fixed Java PRNG seeds then generate 48 additional Oreslang operations each. The generated
+A directed prelude guarantees successful enqueue, add_to_front, insert_before,
+insert_after, valid ticket removal, stale ticket rejection and clear/reuse.
+Three fixed Java PRNG seeds then generate 48 additional Oreslang operations each. The generated
 Oreslang source exercises all four admissions, invalid/duplicate requests,
 remove/dequeue/remove_last, clear, valid and stale `remove_ticket`, ticket
 payload reads, linked order and `validate()` after every step. In particular,
