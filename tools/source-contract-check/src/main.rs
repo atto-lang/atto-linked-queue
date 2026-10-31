@@ -5,23 +5,27 @@ use std::path::{Path, PathBuf};
 use std::process;
 use walkdir::WalkDir;
 
-const MUTATORS: [&str; 9] = [
+const MUTATORS: [&str; 10] = [
     "initialize",
     "enqueue",
     "add_to_front",
     "insert_before",
     "insert_after",
     "remove",
+    "remove_ticket",
     "dequeue",
     "remove_last",
     "clear",
 ];
 
-const READERS: [&str; 8] = [
+const READERS: [&str; 11] = [
     "size",
     "is_empty",
     "contains",
     "get",
+    "ticket_for",
+    "contains_ticket",
+    "get_ticket",
     "first",
     "last",
     "ordered_keys",
@@ -179,7 +183,7 @@ fn validate_root(root: &Path) -> Result<Vec<String>, String> {
         }
     }
 
-    for field in ["previous", "following", "values", "occupied"] {
+    for field in ["previous", "following", "values", "occupied", "generations"] {
         let expression = Regex::new(&format!(
             r"\blet\s+mut\s+Array<int>\s+{}\s*=",
             regex::escape(field)
@@ -327,6 +331,7 @@ mod tests {
             .iter()
             .any(|error| error.contains("legacy conditional")));
     }
+
     #[cfg(unix)]
     #[test]
     fn symlinked_ores_source_is_rejected() {
@@ -362,4 +367,24 @@ mod tests {
         assert!(failure.contains("source traversal failed"), "{failure}");
     }
 
+    #[test]
+    fn missing_generation_array_is_rejected() {
+        let fixture = Fixture::new();
+        fixture.edit("let mut Array<int> generations", "let Array<int> generations");
+        assert!(errors(fixture.root())
+            .iter()
+            .any(|error| error.contains("generations")));
+    }
+
+    #[test]
+    fn ticket_removal_requires_mutable_receiver() {
+        let fixture = Fixture::new();
+        fixture.edit(
+            "pub remove_ticket(mut self)(",
+            "pub remove_ticket(",
+        );
+        assert!(errors(fixture.root())
+            .iter()
+            .any(|error| error.contains("remove_ticket")));
+    }
 }
