@@ -2,7 +2,7 @@
 
 ## Baseline implementation: one owner, no lock
 
-The current IntLinkedQueue stores four private arrays and three scalar metadata fields. Links are integer keys; the queue instance alone owns them. The only exported item is a new QueueEntry value (int key, int value), never a reference to internal arrays. An insertion/relink/removal consists of multiple writes. Treat **each public operation as requiring exclusive mutable access to the entire queue**; do not share this object across threads with unguarded method calls.
+The current IntLinkedQueue stores five private arrays (including generation counters) and three scalar metadata fields. Links are integer keys; the queue instance alone owns them. The only exported item is a new QueueEntry value (int key, int value), never a reference to internal arrays. An insertion/relink/removal consists of multiple writes. Treat **each public operation as requiring exclusive mutable access to the entire queue**; do not share this object across threads with unguarded method calls.
 
 Required borrow/effect rules (normative design, not proof of current LLVM enforcement):
 
@@ -66,6 +66,9 @@ Invariants:
 - Every active key belongs to the one forward chain exactly once, and the reverse chain is its inverse.
 - Exactly count active keys exist; no inactive slot retains a link; links never point to inactive/out-of-range keys.
 - Any surviving key has its original stored value, except after explicit removal and reinsertion of that key.
+- Each successful admission of a key advances its generation before publishing occupancy; removal and clear never rewind it.
+- A stale (key, generation) ticket cannot read or remove a later occupant **of the same queue instance**. Tickets are not cross-instance identities or authorization capabilities.
+- A generation at the saturation threshold rejects further key admissions instead of wrapping.
 - No mutation on duplicate key, invalid key or missing anchor.
 - Removal of head/tail/middle updates both adjacent links; clear drops every slot and makes reuse safe.
 
