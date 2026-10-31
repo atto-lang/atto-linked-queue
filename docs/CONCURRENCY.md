@@ -6,7 +6,7 @@ The current IntLinkedQueue stores four private arrays and three scalar metadata 
 
 Required borrow/effect rules (normative design, not proof of current LLVM enforcement):
 
-1. Only one live mutable loan (&mut Queue) OR any number of immutable loans (&Queue); never both. Subfield borrows of head/tail/count/arrays must be recognized as aliases of the same queue.
+1. Exactly one live compiler-checked mutable loan OR any number of non-mutating loans; never both. Oreslang uses `rt borrow` / `rt mut borrow` operations, not pointer-style `&`/`*` syntax. Subfield loans of head/tail/count/arrays alias the same queue.
 2. A method returning a fresh value/snapshot transfers no loan. No iterator, callback, or returned object may retain a mutable alias into this queue.
 3. A mutable loan must not cross await/suspend, actor send, foreign callback, or a reentrant actor turn. A read loan cannot be upgraded to write while other readers are alive.
 4. Moving a queue transfers its ownership. A moved-from queue cannot be called or dropped twice. Heap/arena reclamation must wait for all pinned readers and pending callbacks.
@@ -16,15 +16,16 @@ Java/Truffle source collection support does NOT imply native LLVM arrays, alias 
 
 ## Preferred concurrent adapter: an actor
 
-Put the queue inside the actor's private state. Actors provide a **single executing turn** at a time, regardless of carrier or preemption; messages are serialized through its mailbox. Producers send enqueue requests; consumers send dequeue requests with replies. The queue is never sent or shared. If an actor is reentrant at suspend, the compiler must end each state-loan before suspension and revalidate state on resume. A returned queued item is a value snapshot.
+Put the queue inside the actor's private `state` field, which owns **all** mutable actor instance state. Handlers use `handle_state` with a `critical` state-write section. Actor handlers are **non-reentrant across suspension**: no other handler for that actor may enter while the suspended handler owns the turn. Producers send enqueue requests; consumers send dequeue requests with replies. The queue is never sent or shared, and returned queue items are owned value snapshots. A state loan must not escape the critical section or survive suspension.
 
 For state-sealed actors, the intended direction is:
 
 ~~~ores
 // DESIGN SKETCH ONLY: not compiled by the current LLVM source slice.
-define serial actor QueueOwner as
+define isolated actor QueueOwner as
   state { queue: IntLinkedQueue }
-  pub enqueue(int key, int value): bool using state.write {
+  // Illustrative only; final critical callback syntax is compiler-dependent.
+  pub enqueue(int key, int value): bool {
     return self.handle_state(critical |s| -> s.queue.enqueue(key, value));
   }
 end
@@ -43,7 +44,7 @@ Only offer SharedLinkedQueue when there is measured shared-memory demand. A borr
 - Readers receive immutable snapshots or an explicit nonescaping read guard. No live iterator may outlast its guard. A lock-free peek of head/count is unsafe: it may observe a half-relinked chain.
 - Handle lock poison/failure explicitly. Do not treat lock acquisition or failure to enqueue as success.
 
-Suggested source-level words such as critical-read and critical-write are **not implemented keywords**. A future language feature may lower them to compiler-owned guard/ticket effects, but cannot make unprotected field access safe by mere naming.
+The `critical` state-loan contract is distinct from a blocking OS mutex. Do not claim that unverified `critical[write]` or `critical-write` spellings compile; gate the chosen grammar against the actual compiler. An annotation or keyword cannot make otherwise unguarded shared access safe.
 
 ## Data races versus logical races
 
