@@ -327,6 +327,7 @@ mod tests {
             .iter()
             .any(|error| error.contains("legacy conditional")));
     }
+
     #[cfg(unix)]
     #[test]
     fn symlinked_ores_source_is_rejected() {
@@ -361,5 +362,4 @@ mod tests {
         let failure = validate_root(&missing).unwrap_err();
         assert!(failure.contains("source traversal failed"), "{failure}");
     }
-
 }
