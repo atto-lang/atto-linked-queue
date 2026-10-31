@@ -150,7 +150,7 @@ final class LinkedQueueTicketDifferentialTest {
         admit(src, 2, 220, 1005, generations, tickets, id);
         snapshot(src, order, values, generations, tickets, id);
 
-        src.append("  q.clear();\\n");
+        src.append("  q.clear();\n");
         values.clear();
         order.clear();
         snapshot(src, order, values, generations, tickets, id);
