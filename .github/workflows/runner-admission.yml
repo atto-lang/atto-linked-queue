@@ -1,0 +1,26 @@
+name: Linked queue source-free runner admission
+
+on:
+  push:
+    branches:
+      - hardening/fail-closed-source-audit-20261030
+  pull_request:
+    paths:
+      - '.github/workflows/runner-admission.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-free-runner-canary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Executed runner admission proof (no checkout)
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'RUNNER_CANARY_EXECUTED sha=%s run=%s attempt=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
+          test -n "$RUNNER_NAME"
+          printf 'runner=%s os=%s\n' "$RUNNER_NAME" "$RUNNER_OS"
