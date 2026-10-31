@@ -379,10 +379,7 @@ mod tests {
     #[test]
     fn ticket_removal_requires_mutable_receiver() {
         let fixture = Fixture::new();
-        fixture.edit(
-            "pub remove_ticket(mut self)(",
-            "pub remove_ticket(",
-        );
+        fixture.edit("pub remove_ticket(mut self)(", "pub remove_ticket(");
         assert!(errors(fixture.root())
             .iter()
             .any(|error| error.contains("remove_ticket")));
