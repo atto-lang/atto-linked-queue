@@ -38,17 +38,29 @@ fn validate_root(root: &Path) -> Result<Vec<String>, String> {
     let readonly_queue =
         Regex::new(r"\blet\s+IntLinkedQueue\s+\w+\s*=").map_err(|error| error.to_string())?;
 
-    let mut files = WalkDir::new(root)
-        .follow_links(false)
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().is_file())
-        .map(|entry| entry.into_path())
-        .filter(|path| {
-            path.extension()
+    // Do not silently skip unreadable directories or files. A partial scan
+    // must never be reported as a successful source-policy check.
+    let mut files = Vec::new();
+    for entry in WalkDir::new(root).follow_links(false) {
+        let entry = entry.map_err(|error| format!("source traversal failed: {error}"))?;
+        let path = entry.path();
+        // In particular, a symlinked .ores file or directory must not escape
+        // the policy scanner or permit reading source outside the checkout.
+        if entry.file_type().is_symlink() {
+            let relative = path.strip_prefix(root).unwrap_or(path);
+            return Err(format!(
+                "{}: symlinks are prohibited in the audited source tree",
+                relative.display()
+            ));
+        }
+        if entry.file_type().is_file()
+            && path
+                .extension()
                 .is_some_and(|extension| extension == "ores")
-        })
-        .collect::<Vec<_>>();
+        {
+            files.push(path.to_path_buf());
+        }
+    }
     files.sort();
 
     let mut errors = Vec::new();
@@ -315,4 +327,39 @@ mod tests {
             .iter()
             .any(|error| error.contains("legacy conditional")));
     }
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_ores_source_is_rejected() {
+        use std::os::unix::fs::symlink;
+
+        let fixture = Fixture::new();
+        fs::create_dir_all(fixture.root().join("tests")).unwrap();
+        symlink(
+            fixture.root().join("src/int_linked_queue.ores"),
+            fixture.root().join("tests/hidden.ores"),
+        )
+        .unwrap();
+        let failure = validate_root(fixture.root()).unwrap_err();
+        assert!(failure.contains("symlinks are prohibited"), "{failure}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_source_directory_is_rejected() {
+        use std::os::unix::fs::symlink;
+
+        let fixture = Fixture::new();
+        symlink(fixture.root().join("src"), fixture.root().join("other_source")).unwrap();
+        let failure = validate_root(fixture.root()).unwrap_err();
+        assert!(failure.contains("symlinks are prohibited"), "{failure}");
+    }
+
+    #[test]
+    fn traversal_failure_is_not_an_empty_success() {
+        let fixture = Fixture::new();
+        let missing = fixture.root().join("missing-root");
+        let failure = validate_root(&missing).unwrap_err();
+        assert!(failure.contains("source traversal failed"), "{failure}");
+    }
+
 }
