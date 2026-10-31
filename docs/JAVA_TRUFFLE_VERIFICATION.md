@@ -56,3 +56,36 @@ mvn -B -ntp \
 This checks single-owner behavioral equivalence, not thread safety, LLVM
 lowering, or randomized exhaustive proof. Failing seed values can be rerun
 deterministically.
+
+## Generation-ticket differential gate (new, unexecuted)
+
+`tests/integration/java/LinkedQueueTicketDifferentialTest.java` independently
+models active keys, list order, slot generations and previously issued tickets.
+Three fixed Java PRNG seeds each generate 48 Oreslang operations. The generated
+Oreslang source exercises all four admissions, invalid/duplicate requests,
+remove/dequeue/remove_last, clear, valid and stale `remove_ticket`, ticket
+payload reads, linked order and `validate()` after every step. In particular,
+the Java oracle retains old tickets across key reuse, while the Oreslang
+implementation must reject stale tickets and preserve unrelated live tickets.
+
+To execute, copy **both** Java differential test files and the integration
+adapter into the compiler's `src/test/java/dev/oreslang/` test directory, then
+run from the exact pinned compiler checkout:
+
+```bash
+mvn -B -ntp \
+  -Dtest=LinkedQueueIntegrationTest,LinkedQueueDifferentialTest,LinkedQueueTicketDifferentialTest \
+  -Doreslang.linkedQueueRoot=/absolute/path/to/oreslang-linked-queue \
+  -Dsurefire.useFile=false test
+```
+
+This new model has **not been executed** on the draft PR tree. Do not count
+existing Java CI runs or successful Java-side source generation as execution.
+Require the full Git commit/tree SHA, exact library/test blob SHAs, compiler
+commit, real job/step identifiers, raw return values and logs before recording
+`generation-differential/java/execution` in the rollout receipt. The receipt
+checker only validates declared metadata; it cannot authenticate execution.
+
+This is a bounded queue-local ABA regression, **not** a cross-queue/tenant
+identity mechanism, authorization test, thread-safety proof or saturation
+test at 2^31-1. Those remain separate release gates.
