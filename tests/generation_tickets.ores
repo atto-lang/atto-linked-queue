@@ -1,0 +1,121 @@
+// Guest regression: stale integer slot keys must not authorize later occupants.
+// Tickets are instance-scoped ABA guards, NOT actor/tenant capability tokens.
+import class IntLinkedQueue, QueueTicket from "../src/int_linked_queue";
+
+pub routine main() -> int {
+  val IntLinkedQueue q = new IntLinkedQueue(3);
+  if !q.initialize() then
+    return 1;
+  fi
+  if q.ticket_for(0).is_some() then
+    return 2;
+  fi
+  if !q.enqueue(0, 0) then
+    return 3;
+  fi
+  if !q.enqueue(1, 11) then
+    return 4;
+  fi
+  val QueueTicket first = q.ticket_for(0).unwrap();
+  val QueueTicket other = q.ticket_for(1).unwrap();
+  if first.generation != 1 then
+    return 5;
+  fi
+  if !q.contains_ticket(first) then
+    return 6;
+  fi
+  if q.get_ticket(first).unwrap() != 0 then
+    return 7;
+  fi
+  if q.enqueue(0, 999) then
+    return 8;
+  fi
+  if !q.contains_ticket(first) then
+    return 9;
+  fi
+  if q.remove_ticket(first).unwrap().value != 0 then
+    return 10;
+  fi
+  if q.contains_ticket(first) then
+    return 11;
+  fi
+  if q.get_ticket(first).is_some() then
+    return 12;
+  fi
+  if q.remove_ticket(first).is_some() then
+    return 13;
+  fi
+  if !q.enqueue(0, 20) then
+    return 14;
+  fi
+  val QueueTicket second = q.ticket_for(0).unwrap();
+  if second.generation != first.generation + 1 then
+    return 15;
+  fi
+  if q.remove_ticket(first).is_some() then
+    return 16;
+  fi
+  if q.get_ticket(second).unwrap() != 20 then
+    return 17;
+  fi
+  if q.get_ticket(other).unwrap() != 11 then
+    return 18;
+  fi
+  if !q.add_to_front(2, 22) then
+    return 19;
+  fi
+  val QueueTicket front = q.ticket_for(2).unwrap();
+  if front.generation != 1 then
+    return 20;
+  fi
+  if q.insert_before(1, 2, 999) then
+    return 21;
+  fi
+  if !q.contains_ticket(front) then
+    return 22;
+  fi
+  if q.remove(0).unwrap().value != 20 then
+    return 23;
+  fi
+  if !q.insert_after(1, 0, 30) then
+    return 24;
+  fi
+  val QueueTicket third = q.ticket_for(0).unwrap();
+  if third.generation != second.generation + 1 then
+    return 25;
+  fi
+  if q.remove_ticket(second).is_some() then
+    return 26;
+  fi
+  if !q.validate() then
+    return 27;
+  fi
+
+  q.clear();
+  if q.contains_ticket(third) then
+    return 28;
+  fi
+  if q.get_ticket(front).is_some() then
+    return 29;
+  fi
+  if !q.insert_after(0, 2, 100) then
+    return 30;
+  fi
+  if !q.enqueue(0, 40) then
+    return 31;
+  fi
+  val QueueTicket fourth = q.ticket_for(0).unwrap();
+  if fourth.generation != third.generation + 1 then
+    return 32;
+  fi
+  if q.remove_ticket(third).is_some() then
+    return 33;
+  fi
+  if q.get_ticket(fourth).unwrap() != 40 then
+    return 34;
+  fi
+  if !q.validate() then
+    return 35;
+  fi
+  return 0;
+}
