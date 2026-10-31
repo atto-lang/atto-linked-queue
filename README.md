@@ -17,6 +17,27 @@ The TypeScript original has arbitrary K/V, iterator, random-key and async method
 
 The single-owner Oreslang queue now compiles and runs under the Java/Truffle source compiler with no Java/JS code in the library. An exact-source, funded [GraalVM CI run #38316842944](https://github.com/agent-pontifex/agent-pontifex-daemon/actions/runs/38316842944) compiled and executed all five positive fixtures (`smoke`, `stress`, `instances`, `edge_cases`, `relink_matrix`) and verified all five negative fixtures fail. Two formerly accepted simultaneous mutable-borrow arguments are rejected by the merged [Java borrow checker fix #767](https://github.com/ores-truffle-oreslang/oreslang-source.java/pull/767). The same run passed 18 ownership-related JUnit tests, including six invocation-borrow regressions. The LLVM backend and true multithreaded/actor runtime have **not** been verified; this remains an experimental bounded-integer queue.
 
+## Hard-real-time and stale-key warning
+
+This prototype is **not certified for hard-real-time execution**. In particular,
+`initialize()` and `clear()` perform O(capacity) work; `ordered_keys()`
+allocates an O(size) snapshot; `remove()`/dequeue and endpoint peeks construct
+fresh QueueEntry objects. Use the compiler's hard-RT effect checker rather than
+assuming that O(1) queue-link updates imply allocation-free WCET behavior.
+
+A QueueEntry is a snapshot, **not** a generation-fenced identity. Once a key is
+removed and reinserted, the same integer key identifies a different occupancy
+generation. Do not use saved keys as durable handles or across actor/tenant
+boundaries without explicit generation fencing.
+
+The repository's `source-contract-static` workflow is a static style/receiver
+test, **not** a language execution or concurrency safety check. The latest
+main-branch run at commit `704e1a3` (run `40446300427`) reported a failed
+job with zero executed steps. Do not count it as a source test failure or a pass;
+restore trusted runner admission and independently execute Java/Truffle cases
+before release. Historical success on another exact tree does not cover this
+or later commits.
+
 ## Ownership and concurrency
 
 One mutable owner per queue, with explicit `mut self` receivers on all mutating operations. A borrow checker should forbid simultaneous mutable aliases while allowing immutable readers; it cannot prove logical FIFO correctness or that a sequence of several calls is atomic. The default deployment is actor-confined with serialized mutations, avoiding any lock. A future shared-memory wrapper may use reader/writer guards, but they must be nonescaping, cancellation-safe and not held over await. Actor scheduler carriers must never park on a contested lock.
