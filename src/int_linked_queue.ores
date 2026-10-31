@@ -9,6 +9,13 @@ define pub class QueueEntry as
   pub val int value;
 end
 
+// Instance-scoped stale-key guard, NOT a capability or cross-queue identity.
+// A ticket is valid only for the instance that created it.
+define pub class QueueTicket as
+  pub val int key;
+  pub val int generation;
+end
+
 define pub class IntLinkedQueue as
   val int capacity;
   let int head = -1;
@@ -23,6 +30,9 @@ define pub class IntLinkedQueue as
   let mut Array<int> following = new Array<int>();
   let mut Array<int> values = new Array<int>();
   let mut Array<int> occupied = new Array<int>();
+  // Monotonic per-slot admissions; never reset by remove() or clear().
+  // Reject further admission before the bounded generation can wrap.
+  let mut Array<int> generations = new Array<int>();
 
   // Required once after construction. Refuse repeat initialization.
   // Bound allocation up front to prevent unbounded array exhaustion.
@@ -38,21 +48,24 @@ define pub class IntLinkedQueue as
     fi
     // Allocate the complete backing store before publishing any field.
     // On an allocation failure, the existing uninitialized queue is unchanged
-    // rather than being left with four differently sized partial arrays.
+    // rather than being left with differently sized partial arrays.
     let mut Array<int> new_previous = new Array<int>();
     let mut Array<int> new_following = new Array<int>();
     let mut Array<int> new_values = new Array<int>();
     let mut Array<int> new_occupied = new Array<int>();
+    let mut Array<int> new_generations = new Array<int>();
     for let i = 0; i < self.capacity; i++ do
       new_previous.add(-1);
       new_following.add(-1);
       new_values.add(0);
       new_occupied.add(0);
+      new_generations.add(0);
     done
     self.previous = new_previous;
     self.following = new_following;
     self.values = new_values;
     self.occupied = new_occupied;
+    self.generations = new_generations;
     self.ready = true;
     return true;
   }
@@ -86,6 +99,28 @@ define pub class IntLinkedQueue as
     return Some(self.values.get(key));
   }
 
+  // An instance-scoped ticket detects reuse, not unauthorized callers.
+  pub ticket_for(int key) -> Option<QueueTicket> {
+    if !self.contains(key) then
+      return None;
+    fi
+    return Some(new QueueTicket(key, self.generations.get(key)));
+  }
+
+  pub contains_ticket(QueueTicket ticket) -> bool {
+    if !self.contains(ticket.key) then
+      return false;
+    fi
+    return self.generations.get(ticket.key) == ticket.generation;
+  }
+
+  pub get_ticket(QueueTicket ticket) -> Option<int> {
+    if !self.contains_ticket(ticket) then
+      return None;
+    fi
+    return Some(self.values.get(ticket.key));
+  }
+
   pub first() -> Option<QueueEntry> {
     if self.head == -1 then
       return None;
@@ -115,6 +150,10 @@ define pub class IntLinkedQueue as
     if self.occupied.get(key) == 1 then
       return false;
     fi
+    if self.generations.get(key) >= 2147483647 then
+      return false;
+    fi
+    self.generations.set(key, self.generations.get(key) + 1);
     self.values.set(key, value);
     self.occupied.set(key, 1);
     self.previous.set(key, self.tail);
@@ -144,6 +183,10 @@ define pub class IntLinkedQueue as
     if self.occupied.get(key) == 1 then
       return false;
     fi
+    if self.generations.get(key) >= 2147483647 then
+      return false;
+    fi
+    self.generations.set(key, self.generations.get(key) + 1);
     self.values.set(key, value);
     self.occupied.set(key, 1);
     self.previous.set(key, -1);
@@ -174,6 +217,10 @@ define pub class IntLinkedQueue as
       return false;
     fi
     let int earlier = self.previous.get(anchor);
+    if self.generations.get(key) >= 2147483647 then
+      return false;
+    fi
+    self.generations.set(key, self.generations.get(key) + 1);
     self.values.set(key, value);
     self.occupied.set(key, 1);
     self.previous.set(key, earlier);
@@ -204,6 +251,10 @@ define pub class IntLinkedQueue as
       return false;
     fi
     let int later = self.following.get(anchor);
+    if self.generations.get(key) >= 2147483647 then
+      return false;
+    fi
+    self.generations.set(key, self.generations.get(key) + 1);
     self.values.set(key, value);
     self.occupied.set(key, 1);
     self.previous.set(key, anchor);
@@ -251,6 +302,14 @@ define pub class IntLinkedQueue as
     self.occupied.set(key, 0);
     self.length = self.length - 1;
     return removed;
+  }
+
+  // A stale ticket cannot remove a replacement occupying the same key.
+  pub remove_ticket(mut self)(QueueTicket ticket) -> Option<QueueEntry> {
+    if !self.contains_ticket(ticket) then
+      return None;
+    fi
+    return self.remove(ticket.key);
   }
 
   pub dequeue(mut self)() -> Option<QueueEntry> {
@@ -330,7 +389,16 @@ define pub class IntLinkedQueue as
 
     let int active = 0;
     for let i = 0; i < self.capacity; i++ do
+      if self.generations.get(i) < 0 then
+        return false;
+      fi
+      if self.generations.get(i) > 2147483647 then
+        return false;
+      fi
       if self.occupied.get(i) == 1 then
+        if self.generations.get(i) == 0 then
+          return false;
+        fi
         active = active + 1;
       else
         if self.occupied.get(i) != 0 then
