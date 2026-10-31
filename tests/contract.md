@@ -30,9 +30,12 @@ Not ported yet: arbitrary generic key/value types, unbounded growth, hashing, ra
 - tests/negative/readonly_receiver.ores and tests/negative/readonly_binding.ores: expected rejection of mutation through readonly access.
 - tests/negative/escaped_mutation.ores: expected rejection of external mutable field access.
 - The Oreslang fixtures return 0 on success and a distinct nonzero failure number.
-- tests/test_source_checker.py: six **executed Python regression tests** for the source checker, including commented-out declaration spoofing, receiver changes, duplicate observer declarations and mutable backing-array declarations.
+- tools/source-contract-check/src/main.rs: Rust unit tests enforce receiver signatures, duplicate declaration rejection, mutable backing-array declarations, legacy formatter rejection, fail-closed path traversal and rejection of symlinked source. These are static policy tests, **not** compiler/runtime evidence.
 
 ## Execution status
+
+**Current CI admission blocker (2026-10-30):** main commit `704e1a317c79deb7049c915c00b7fbf274792d36` has failed source-contract run `40446300427`, whose sole job `121998300903` completed with **zero executed steps**. This is not evidence that the Rust checker or Oreslang code ran. No private-source cross-organization mirror or external Actions budget may be used without explicit transfer authorization and independent destination approval.
+
 
 **Java/Truffle source compilation and execution: PASS.** In [exact-source GraalVM CI #38316842944](https://github.com/agent-pontifex/agent-pontifex-daemon/actions/runs/38316842944), all five positive queue fixtures compiled and executed successfully, all five negative fixtures were rejected, and 18 Java ownership regression tests passed. The aliasing tests exposed an actual defect on Java main, fixed in [merged compiler PR #767](https://github.com/ores-truffle-oreslang/oreslang-source.java/pull/767). The mirror compared Git blob SHA values to the source branches; no private checkout tokens or secrets were required.
 
@@ -40,7 +43,7 @@ Not ported yet: arbitrary generic key/value types, unbounded growth, hashing, ra
 
 ## Acceptance checklist
 
-1. Compile both test fixtures using Java/Truffle; execute them and capture exit/return status.
+1. Compile all five positive fixtures and all five negative fixtures using Java/Truffle; execute positives and capture return statuses, and prove negative cases fail for the intended semantic reasons.
 2. Migrate the exact same files to LLVM without source ifdefs. Check LLVM verifier, Clang execution, ASan/UBSan and platform ABI behavior.
 3. Generate property histories with an independent ordered key list, compare results on every operation and assert validate().
 4. Add negative compiler tests for aliasing, mutation during iteration, borrowed state after await, cross-actor queue transfer, stale node handles and writer/reader simultaneous admission.
