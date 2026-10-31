@@ -8,7 +8,7 @@ An **Oreslang-source** port of [ORESoftware/linked-queue](https://github.com/ORE
 
 ## API and complexity
 
-IntLinkedQueue exposes enqueue, add_to_front, dequeue, remove_last, remove(key), insert_before, insert_after, contains, get, first, last and clear. Individual hot-path operations run in O(1), initialization/clear in O(capacity), and memory is O(capacity). Keys are unique integers in [0, capacity), so this is not yet a drop-in generic K/V port. Missing reads return Option rather than colliding with integer zero. Invalid keys and duplicate insertions do not mutate the queue.
+IntLinkedQueue exposes enqueue, add_to_front, dequeue, remove_last, remove(key), insert_before, insert_after, contains, get, first, last and clear, plus instance-scoped generation tickets (`ticket_for`, `contains_ticket`, `get_ticket`, `remove_ticket`). Individual hot-path operations run in O(1), initialization/clear in O(capacity), and memory is O(capacity). Keys are unique integers in [0, capacity), so this is not yet a drop-in generic K/V port. Missing reads return Option rather than colliding with integer zero. Invalid keys and duplicate insertions do not mutate the queue.
 
 The TypeScript original has arbitrary K/V, iterator, random-key and async methods. They are tracked as future work; the source's three insertion methods are advertised in its README but currently throw not implemented.
 
@@ -21,14 +21,20 @@ The single-owner Oreslang queue now compiles and runs under the Java/Truffle sou
 
 This prototype is **not certified for hard-real-time execution**. In particular,
 `initialize()` and `clear()` perform O(capacity) work; `ordered_keys()`
-allocates an O(size) snapshot; `remove()`/dequeue and endpoint peeks construct
+allocates an O(size) snapshot; `remove()`/dequeue, ticket creation and endpoint peeks construct
 fresh QueueEntry objects. Use the compiler's hard-RT effect checker rather than
 assuming that O(1) queue-link updates imply allocation-free WCET behavior.
 
-A QueueEntry is a snapshot, **not** a generation-fenced identity. Once a key is
-removed and reinserted, the same integer key identifies a different occupancy
-generation. Do not use saved keys as durable handles or across actor/tenant
-boundaries without explicit generation fencing.
+A QueueEntry is a key/value snapshot, **not** a generation-fenced identity. A
+separate QueueTicket now records (key, generation): stale tickets cannot read or
+remove a replacement occupant **within the issuing queue instance**. All four
+admission paths bump that key's generation before inserting. Clear and remove
+preserve the per-key generation history, so key reuse invalidates old tickets.
+Generations stop at 2147483647; a saturated key is refused instead of wrapping.
+Tickets are **not** authorizations, cryptographically unforgeable capabilities,
+or cross-queue identities: a ticket constructed for one instance may collide
+with the same key/generation in another instance. Keep tickets within the
+owning queue/actor and use explicit tenant and actor identity fences.
 
 The repository's `source-contract-static` workflow is a static style/receiver
 test, **not** a language execution or concurrency safety check. The latest
