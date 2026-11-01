@@ -21,11 +21,30 @@ fnc invalid_remove_preserves_live_chain(): TestOutcome {
   return expect_true(q.size() == 1 && q.get(1).unwrap() == 9 && q.validate(),
     "rejected removal must not disturb queue links");
 }
+fnc negative_key_enqueue_is_atomic(): TestOutcome {
+  val IntLinkedQueue q = new IntLinkedQueue(2);
+  if !q.initialize(); then return fail("queue initialization failed"); fi
+  if q.enqueue(-1, 55); then return fail("negative key was admitted"); fi
+  return expect_true(q.validate() && q.size() == 0 && q.is_empty(),
+    "invalid enqueue must leave a valid empty queue");
+}
+
+fnc repeated_clear_is_idempotent(): TestOutcome {
+  val IntLinkedQueue q = new IntLinkedQueue(2);
+  if !q.initialize() || !q.enqueue(0, 11); then return fail("queue setup failed"); fi
+  q.clear();
+  q.clear();
+  return expect_true(q.is_empty() && q.size() == 0 && !q.get(0).is_some()
+    && q.validate(), "repeated clear must not retain live links or values");
+}
+
 pub routine main(): void {
   val TestSuite suite = new TestSuite("linked-queue", arr[
     new TestCase("duplicate_enqueue_is_atomic", duplicate_enqueue_is_atomic, false, ""),
     new TestCase("zero_payload_is_not_missing", zero_payload_is_not_missing, false, ""),
-    new TestCase("invalid_remove_preserves_live_chain", invalid_remove_preserves_live_chain, false, "")
+    new TestCase("invalid_remove_preserves_live_chain", invalid_remove_preserves_live_chain, false, ""),
+    new TestCase("negative_key_enqueue_is_atomic", negative_key_enqueue_is_atomic, false, ""),
+    new TestCase("repeated_clear_is_idempotent", repeated_clear_is_idempotent, false, "")
   ]);
   val TestOptions options = new TestOptions("", false, true);
   val RunSummary summary = run_suite(rt borrow suite, rt borrow options);
