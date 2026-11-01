@@ -114,5 +114,8 @@ pub routine main() -> int {
   if q.size() != 0 then return 32; fi
   if q.first().is_some() then return 33; fi
   if q.last().is_some() then return 34; fi
+  // A cleared queue must not retain a payload reachable by key or dequeue.
+  if q.get(0).is_some() then return 35; fi
+  if q.dequeue().is_some() then return 36; fi
   return 0;
 }
