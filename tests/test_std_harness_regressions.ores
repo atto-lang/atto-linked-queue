@@ -1,0 +1,26 @@
+import class TestCase, TestSuite, TestOptions, TestOutcome, RunSummary from "std/testing";
+import fnc expect_true, expect_false, expect_equal_int, expect_equal_string, run_suite, require_success, fail from "std/testing";
+import class IntLinkedQueue from "../src/int_linked_queue";
+fnc duplicate_enqueue_is_atomic(): TestOutcome {
+  val IntLinkedQueue q = new IntLinkedQueue(2);
+  if !q.initialize() || !q.enqueue(0, 41); then return fail("queue init/enqueue failed"); fi
+  if q.enqueue(0, 99); then return fail("duplicate key was accepted"); fi
+  return expect_true(q.validate() && q.size() == 1 && q.get(0).unwrap() == 41,
+    "failed duplicate enqueue must preserve the original item");
+}
+fnc zero_payload_is_not_missing(): TestOutcome {
+  val IntLinkedQueue q = new IntLinkedQueue(1);
+  if !q.initialize() || !q.enqueue(0, 0); then return fail("zero payload insertion failed"); fi
+  return expect_true(q.get(0).is_some() && q.dequeue().unwrap().value == 0
+    && q.is_empty() && q.validate(), "zero value must survive extraction");
+}
+pub routine main(): void {
+  val TestSuite suite = new TestSuite("linked-queue", arr[
+    new TestCase("duplicate_enqueue_is_atomic", duplicate_enqueue_is_atomic, false, ""),
+    new TestCase("zero_payload_is_not_missing", zero_payload_is_not_missing, false, "")
+  ]);
+  val TestOptions options = new TestOptions("", false, true);
+  val RunSummary summary = run_suite(rt borrow suite, rt borrow options);
+  require_success(rt borrow summary);
+  return;
+}
