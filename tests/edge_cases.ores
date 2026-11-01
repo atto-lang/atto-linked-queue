@@ -110,5 +110,9 @@ pub routine main() -> int {
   if !q.validate() then
     return 31;
   fi
+  // Clearing must reset all observable queue views, not only is_empty().
+  if q.size() != 0 then return 32; fi
+  if q.first().is_some() then return 33; fi
+  if q.last().is_some() then return 34; fi
   return 0;
 }
