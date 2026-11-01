@@ -1,5 +1,5 @@
-import class TestCase, TestSuite, TestOptions, TestOutcome, RunSummary from "std/testing";
-import fnc expect_true, expect_false, expect_equal_int, expect_equal_string, run_suite, require_success, fail from "std/testing";
+import class TestCase, TestSuite, TestOptions, TestOutcome, RunSummary from "ores.std/testing";
+import fnc expect_true, expect_false, expect_equal_int, expect_equal_string, run_suite, require_success, fail from "ores.std/testing";
 import class IntLinkedQueue from "../src/int_linked_queue";
 fnc duplicate_enqueue_is_atomic(): TestOutcome {
   val IntLinkedQueue q = new IntLinkedQueue(2);
