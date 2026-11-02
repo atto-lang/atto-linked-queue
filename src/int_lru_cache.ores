@@ -1,0 +1,270 @@
+// Bounded, actor-confined, native AttoLang/Oreslang-source LRU cache.
+// No Java/JS, FFI, pointers, reflection, runtime JIT or allocation on hit.
+// Direct-address nonnegative integer keys: keyspace <= 65536.
+// A key is NOT a generational handle; external authorization remains separate.
+//
+// Oldest entry is head; newest entry is tail. All hot-path operations O(1).
+define pub class IntLruCache as
+  val int keyspace;
+  val int max_entries;
+  let bool ready = false;
+  let int head = -1;
+  let int tail = -1;
+  let int length = 0;
+  let mut Array<int> previous = new Array<int>();
+  let mut Array<int> following = new Array<int>();
+  let mut Array<int> values = new Array<int>();
+  let mut Array<int> occupied = new Array<int>();
+
+  // Initialize once. Preallocate all backing arrays before publishing them.
+  pub initialize(mut self)() -> bool {
+    if self.ready then
+      return false;
+    fi
+    if self.keyspace < 1 || self.keyspace > 65536 then
+      return false;
+    fi
+    if self.max_entries < 1 || self.max_entries > self.keyspace then
+      return false;
+    fi
+    let mut Array<int> prev = new Array<int>();
+    let mut Array<int> next = new Array<int>();
+    let mut Array<int> data = new Array<int>();
+    let mut Array<int> used = new Array<int>();
+    for let i = 0; i < self.keyspace; i++ do
+      prev.add(-1);
+      next.add(-1);
+      data.add(0);
+      used.add(0);
+    done
+    self.previous = prev;
+    self.following = next;
+    self.values = data;
+    self.occupied = used;
+    self.ready = true;
+    return true;
+  }
+
+  pub size() -> int {
+    return self.length;
+  }
+
+  pub contains(int key) -> bool {
+    if !self.ready || key < 0 || key >= self.keyspace then
+      return false;
+    fi
+    return self.occupied.get(key) == 1;
+  }
+
+  // A zero payload is valid and distinct from an absent key.
+  pub peek(int key) -> Option<int> {
+    if !self.contains(key) then
+      return None;
+    fi
+    return Some(self.values.get(key));
+  }
+
+  // Move an existing key to MRU without allocating nodes or copying values.
+  pub touch(mut self)(int key) -> bool {
+    if !self.contains(key) then
+      return false;
+    fi
+    if key == self.tail then
+      return true;
+    fi
+    let int before = self.previous.get(key);
+    let int after = self.following.get(key);
+    if before == -1 then
+      self.head = after;
+    else
+      self.following.set(before, after);
+    fi
+    if after != -1 then
+      self.previous.set(after, before);
+    fi
+    self.previous.set(key, self.tail);
+    self.following.set(key, -1);
+    self.following.set(self.tail, key);
+    self.tail = key;
+    return true;
+  }
+
+  pub get(mut self)(int key) -> Option<int> {
+    if !self.contains(key) then
+      return None;
+    fi
+    // Once validated, touch cannot fail.
+    self.touch(key);
+    return Some(self.values.get(key));
+  }
+
+  // false: invalid/uninitialized key. Existing keys are overwritten and
+  // refreshed; insertion at capacity evicts exactly one least-recent key.
+  // No implicit cross-actor synchronization or borrowed value escape.
+  pub put(mut self)(int key, int value) -> bool {
+    if !self.ready || key < 0 || key >= self.keyspace then
+      return false;
+    fi
+    if self.occupied.get(key) == 1 then
+      self.values.set(key, value);
+      self.touch(key);
+      return true;
+    fi
+    if self.length == self.max_entries then
+      let int oldest = self.head;
+      let int after = self.following.get(oldest);
+      self.head = after;
+      if after == -1 then
+        self.tail = -1;
+      else
+        self.previous.set(after, -1);
+      fi
+      // Clear the displaced key's links and value before reusing capacity.
+      self.previous.set(oldest, -1);
+      self.following.set(oldest, -1);
+      self.values.set(oldest, 0);
+      self.occupied.set(oldest, 0);
+      self.length = self.length - 1;
+    fi
+    self.values.set(key, value);
+    self.occupied.set(key, 1);
+    self.previous.set(key, self.tail);
+    self.following.set(key, -1);
+    if self.tail == -1 then
+      self.head = key;
+    else
+      self.following.set(self.tail, key);
+    fi
+    self.tail = key;
+    self.length = self.length + 1;
+    return true;
+  }
+
+  // Construct the returned snapshot before destructive mutation.
+  pub remove(mut self)(int key) -> Option<int> {
+    if !self.contains(key) then
+      return None;
+    fi
+    val Option<int> removed = Some(self.values.get(key));
+    let int before = self.previous.get(key);
+    let int after = self.following.get(key);
+    if before == -1 then
+      self.head = after;
+    else
+      self.following.set(before, after);
+    fi
+    if after == -1 then
+      self.tail = before;
+    else
+      self.previous.set(after, before);
+    fi
+    self.previous.set(key, -1);
+    self.following.set(key, -1);
+    self.values.set(key, 0);
+    self.occupied.set(key, 0);
+    self.length = self.length - 1;
+    return removed;
+  }
+
+  pub least_recent_key() -> Option<int> {
+    if self.head == -1 then
+      return None;
+    fi
+    return Some(self.head);
+  }
+
+  pub most_recent_key() -> Option<int> {
+    if self.tail == -1 then
+      return None;
+    fi
+    return Some(self.tail);
+  }
+
+  // Snapshot for diagnostics; not used on the hot path.
+  pub ordered_keys() -> Array<int> {
+    let mut Array<int> result = new Array<int>();
+    let int current = self.head;
+    for let i = 0; i < self.length; i++ do
+      result.add(current);
+      current = self.following.get(current);
+    done
+    return result;
+  }
+
+  // Deliberately scrubs all values and links; O(keyspace).
+  pub clear(mut self)() -> void {
+    if !self.ready then
+      return;
+    fi
+    for let i = 0; i < self.keyspace; i++ do
+      self.previous.set(i, -1);
+      self.following.set(i, -1);
+      self.values.set(i, 0);
+      self.occupied.set(i, 0);
+    done
+    self.head = -1;
+    self.tail = -1;
+    self.length = 0;
+    return;
+  }
+
+  // Full structural audit O(keyspace); never run on the hot path.
+  pub validate() -> bool {
+    if !self.ready || self.length < 0 || self.length > self.max_entries then
+      return false;
+    fi
+    if self.length == 0 then
+      if self.head != -1 || self.tail != -1 then
+        return false;
+      fi
+    else
+      if !self.contains(self.head) || !self.contains(self.tail) then
+        return false;
+      fi
+      if self.previous.get(self.head) != -1 ||
+         self.following.get(self.tail) != -1 then
+        return false;
+      fi
+    fi
+    let int active = 0;
+    for let i = 0; i < self.keyspace; i++ do
+      if self.occupied.get(i) == 1 then
+        active = active + 1;
+      else
+        if self.occupied.get(i) != 0 ||
+           self.previous.get(i) != -1 ||
+           self.following.get(i) != -1 ||
+           self.values.get(i) != 0 then
+          return false;
+        fi
+      fi
+    done
+    if active != self.length then
+      return false;
+    fi
+    let int cursor = self.head;
+    let int prior = -1;
+    for let i = 0; i < self.length; i++ do
+      if !self.contains(cursor) ||
+         self.previous.get(cursor) != prior then
+        return false;
+      fi
+      prior = cursor;
+      cursor = self.following.get(cursor);
+    done
+    if cursor != -1 || prior != self.tail then
+      return false;
+    fi
+    let int reverse = self.tail;
+    let int later = -1;
+    for let i = 0; i < self.length; i++ do
+      if !self.contains(reverse) ||
+         self.following.get(reverse) != later then
+        return false;
+      fi
+      later = reverse;
+      reverse = self.previous.get(reverse);
+    done
+    return reverse == -1 && later == self.head;
+  }
+end
