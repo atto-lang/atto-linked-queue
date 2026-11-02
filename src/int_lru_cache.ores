@@ -250,6 +250,11 @@ define pub class IntLruCache as
       fi
     fi
     let int active = 0;
+    // Diagnostics only: detect duplicate/cyclic recency visits.
+    let mut Array<int> seen = new Array<int>();
+    for let i = 0; i < self.keyspace; i++ do
+      seen.add(0);
+    done
     for let i = 0; i < self.keyspace; i++ do
       if self.occupied.get(i) == 1 then
         active = active + 1;
@@ -272,12 +277,21 @@ define pub class IntLruCache as
          self.previous.get(cursor) != prior then
         return false;
       fi
+      if seen.get(cursor) != 0 then
+        return false;
+      fi
+      seen.set(cursor, 1);
       prior = cursor;
       cursor = self.following.get(cursor);
     done
     if cursor != -1 || prior != self.tail then
       return false;
     fi
+    for let i = 0; i < self.keyspace; i++ do
+      if self.occupied.get(i) == 1 && seen.get(i) != 1 then
+        return false;
+      fi
+    done
     let int reverse = self.tail;
     let int later = -1;
     for let i = 0; i < self.length; i++ do
