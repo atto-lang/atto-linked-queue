@@ -16,6 +16,12 @@ define pub class IntLruCache as
   let mut Array<int> values = new Array<int>();
   let mut Array<int> occupied = new Array<int>();
 
+  // Explicit construction matches both guest fixtures and immutable bounds.
+  pub constructor(int keyspace, int max_entries) {
+    self.keyspace = keyspace;
+    self.max_entries = max_entries;
+  }
+
   // Initialize once. Preallocate all backing arrays before publishing them.
   pub initialize(mut self)() -> bool {
     if self.ready then
@@ -111,6 +117,13 @@ define pub class IntLruCache as
       return true;
     fi
     if self.length == self.max_entries then
+      // Fail closed before mutating a corrupted/invalid recency head.
+      if self.head < 0 || self.head >= self.keyspace then
+        return false;
+      fi
+      if self.occupied.get(self.head) != 1 then
+        return false;
+      fi
       let int oldest = self.head;
       let int after = self.following.get(oldest);
       self.head = after;
@@ -211,6 +224,16 @@ define pub class IntLruCache as
   // Full structural audit O(keyspace); never run on the hot path.
   pub validate() -> bool {
     if !self.ready || self.length < 0 || self.length > self.max_entries then
+      return false;
+    fi
+    if self.keyspace < 1 || self.keyspace > 65536 ||
+       self.max_entries < 1 || self.max_entries > self.keyspace then
+      return false;
+    fi
+    if self.previous.size != self.keyspace ||
+       self.following.size != self.keyspace ||
+       self.values.size != self.keyspace ||
+       self.occupied.size != self.keyspace then
       return false;
     fi
     if self.length == 0 then
