@@ -1,0 +1,81 @@
+// Real AttoLang/Oreslang guest test; no host-language cache substitute.
+import class IntLruCache from "../src/int_lru_cache";
+
+pub routine main() -> int {
+  val IntLruCache bad = new IntLruCache(4, 0);
+  if bad.initialize() then
+    return 1;
+  fi
+  val IntLruCache c = new IntLruCache(8, 3);
+  if c.put(1, 10) || c.get(1).is_some() then
+    return 2;
+  fi
+  if !c.initialize() || c.initialize() || !c.validate() then
+    return 3;
+  fi
+  if c.put(-1, 1) || c.put(8, 1) then
+    return 4;
+  fi
+  if !c.put(1, 10) || !c.put(2, 20) || !c.put(3, 30) then
+    return 5;
+  fi
+  if c.size() != 3 || c.least_recent_key().unwrap() != 1 ||
+     c.most_recent_key().unwrap() != 3 || !c.validate() then
+    return 6;
+  fi
+  if c.get(1).unwrap() != 10 then
+    return 7;
+  fi
+  // Recency is now 2, 3, 1. Peek is strictly non-touching.
+  if c.peek(2).unwrap() != 20 ||
+     c.least_recent_key().unwrap() != 2 then
+    return 8;
+  fi
+  if !c.put(4, 40) || c.contains(2) || c.size() != 3 then
+    return 9;
+  fi
+  if c.least_recent_key().unwrap() != 3 ||
+     c.most_recent_key().unwrap() != 4 || !c.validate() then
+    return 10;
+  fi
+  // Updating an existing key must not evict and must refresh recency.
+  if !c.put(3, 0) || c.peek(3).unwrap() != 0 ||
+     c.most_recent_key().unwrap() != 3 then
+    return 11;
+  fi
+  if c.get(2).is_some() || c.remove(2).is_some() then
+    return 12;
+  fi
+  if c.remove(1).unwrap() != 10 || c.contains(1) then
+    return 13;
+  fi
+  if !c.validate() || c.size() != 2 then
+    return 14;
+  fi
+  if !c.put(1, 101) || c.peek(1).unwrap() != 101 then
+    return 15;
+  fi
+  if c.ordered_keys().get(0) != 4 ||
+     c.ordered_keys().get(1) != 3 ||
+     c.ordered_keys().get(2) != 1 then
+    return 16;
+  fi
+  c.clear();
+  if c.size() != 0 || c.peek(1).is_some() ||
+     c.least_recent_key().is_some() ||
+     c.most_recent_key().is_some() || !c.validate() then
+    return 17;
+  fi
+  // Capacity one exercises eviction where head and tail are identical.
+  val IntLruCache single = new IntLruCache(3, 1);
+  if !single.initialize() || !single.put(0, 0) ||
+     !single.put(2, 22) || single.contains(0) ||
+     single.peek(2).unwrap() != 22 || !single.validate() then
+    return 18;
+  fi
+  if single.remove(2).unwrap() != 22 ||
+     single.remove(2).is_some() || !single.validate() then
+    return 19;
+  fi
+  return 0;
+}

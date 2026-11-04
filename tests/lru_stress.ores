@@ -1,0 +1,65 @@
+// Deterministic native guest lifecycle/churn exercise.
+// This file must be compiled/executed by a real language backend.
+import class IntLruCache from "../src/int_lru_cache";
+
+pub routine main() -> int {
+  val IntLruCache c = new IntLruCache(16, 4);
+  if !c.initialize() then
+    return 1;
+  fi
+  let int key = 0;
+  for let i = 0; i < 2048; i++ do
+    if !c.put(key, i) || c.peek(key).unwrap() != i then
+      return 2;
+    fi
+    if c.size() > 4 || !c.validate() then
+      return 3;
+    fi
+    if c.get(key).unwrap() != i || !c.touch(key) then
+      return 4;
+    fi
+    if c.most_recent_key().unwrap() != key then
+      return 5;
+    fi
+    key = key + 1;
+    if key == 16 then
+      key = 0;
+    fi
+  done
+  if c.size() != 4 || !c.validate() then
+    return 6;
+  fi
+  // Explicit removals, missing keys, clean reinsertions.
+  for let k = 0; k < 16; k++ do
+    if c.contains(k) then
+      if c.remove(k).is_none() || c.contains(k) then
+        return 7;
+      fi
+      if !c.validate() then
+        return 8;
+      fi
+    else
+      if c.remove(k).is_some() || c.touch(k) then
+        return 9;
+      fi
+    fi
+  done
+  if c.size() != 0 || !c.validate() then
+    return 10;
+  fi
+  for let k = 0; k < 16; k++ do
+    if !c.put(k, 0) || c.peek(k).unwrap() != 0 ||
+       !c.validate() then
+      return 11;
+    fi
+  done
+  if c.size() != 4 || c.least_recent_key().unwrap() != 12 ||
+     c.most_recent_key().unwrap() != 15 then
+    return 12;
+  fi
+  c.clear();
+  if c.size() != 0 || !c.validate() then
+    return 13;
+  fi
+  return 0;
+}
