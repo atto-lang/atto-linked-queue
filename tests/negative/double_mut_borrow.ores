@@ -12,6 +12,6 @@ fnc illegal(borrow mut IntLinkedQueue a, borrow mut IntLinkedQueue b) -> void {
 pub fnc main() -> int {
   val IntLinkedQueue queue = new IntLinkedQueue(4);
   queue.initialize();
-  illegal(rt borrow mut queue, rt borrow mut queue);
+  illegal(rt mut borrow queue, rt mut borrow queue);
   return 0;
 }
