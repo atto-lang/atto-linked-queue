@@ -25,3 +25,15 @@ This describes intended scope, not a verified feature matrix. Consult the source
 - [AttoLang](https://github.com/atto-lang)
 - [Language specification](https://github.com/atto-lang/atto-spec)
 - [Cross-platform conformance](https://github.com/atto-lang/atto-platform-conformance)
+
+## Repository ownership and contribution routing
+
+**Belongs here:** Safe linked FIFO/collection APIs, multi-producer/multi-consumer ownership transfer, bounded capacity and queue lifecycle tests.
+
+**Belongs elsewhere:** Reactive channel adaptors in atto-rx-channels; scheduler/private runtime queues in atto-source.*; language ownership definitions in atto-spec.
+
+**Security and portability boundary:** Define fairness, ABA/generation protection, overflow and cancel-vs-close races; assert no cross-actor aliasing and deterministic reclamation.
+
+AttoLang is the public name; preserve existing Oreslang/.ores compatibility and use canonical .atto for new portable library source. This README defines scope, not feature readiness.
+
+**Acceptance:** name exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
