@@ -1,0 +1,15 @@
+// EXPECT COMPILE FAILURE: calling an exclusive mut-self method through a
+// shared/read-only borrow must not be allowed, even for a logically empty queue.
+import class IntLinkedQueue from "../../src/int_linked_queue";
+
+fnc illegal(borrow IntLinkedQueue queue) -> bool {
+  return queue.enqueue(0, 10);
+}
+
+
+pub fnc main() -> int {
+  val IntLinkedQueue queue = new IntLinkedQueue(2);
+  queue.initialize();
+  illegal(rt borrow queue);
+  return 0;
+}

@@ -1,0 +1,14 @@
+// EXPECT COMPILE FAILURE: two simultaneous exclusive loans of one queue.
+// Must not run. Future JVM and LLVM ownership suites should reject without IR.
+import class IntLinkedQueue from "../../src/int_linked_queue";
+
+fnc inspect_two(borrow mut IntLinkedQueue left, borrow mut IntLinkedQueue right) -> int {
+  return left.size() + right.size();
+}
+
+
+pub fnc main() -> int {
+  val IntLinkedQueue q = new IntLinkedQueue(8);
+  q.initialize();
+  return inspect_two(rt mut borrow q, rt mut borrow q);
+}
