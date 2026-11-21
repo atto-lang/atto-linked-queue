@@ -26,6 +26,7 @@ Not ported yet: arbitrary generic key/value types, unbounded growth, hashing, ra
 - tests/edge_cases.ores: capacity boundaries, uninitialized rejection, failed-insert atomicity, detached snapshots and repeated clear.
 - tests/relink_matrix.ores: singleton capacity, insertion at both ends, middle removal, key reuse and FIFO draining (executed).
 - tests/instances.ores: backing-array isolation and snapshot independence.
+- tests/generation_tickets.ores: generation starts at 1, advances on each re-admission, remains stable after rejected duplicate insertion, rejects stale reads/removal after unlink and clear, and preserves unrelated ticket validity.
 - tests/negative/aliasing.ores and tests/negative/double_mut_borrow.ores: expected rejection of overlapping exclusive aliases.
 - tests/negative/readonly_receiver.ores and tests/negative/readonly_binding.ores: expected rejection of mutation through readonly access.
 - tests/negative/escaped_mutation.ores: expected rejection of external mutable field access.
@@ -37,13 +38,13 @@ Not ported yet: arbitrary generic key/value types, unbounded growth, hashing, ra
 **Current CI admission blocker (2026-10-30):** main commit `704e1a317c79deb7049c915c00b7fbf274792d36` has failed source-contract run `40446300427`, whose sole job `121998300903` completed with **zero executed steps**. This is not evidence that the Rust checker or Oreslang code ran. No private-source cross-organization mirror or external Actions budget may be used without explicit transfer authorization and independent destination approval.
 
 
-**Java/Truffle source compilation and execution: PASS.** In [exact-source GraalVM CI #38316842944](https://github.com/agent-pontifex/agent-pontifex-daemon/actions/runs/38316842944), all five positive queue fixtures compiled and executed successfully, all five negative fixtures were rejected, and 18 Java ownership regression tests passed. The aliasing tests exposed an actual defect on Java main, fixed in [merged compiler PR #767](https://github.com/ores-truffle-oreslang/oreslang-source.java/pull/767). The mirror compared Git blob SHA values to the source branches; no private checkout tokens or secrets were required.
+**Historical pre-ticket Java/Truffle source compilation and execution: PASS for the original five positives.** In [exact-source GraalVM CI #38316842944](https://github.com/agent-pontifex/agent-pontifex-daemon/actions/runs/38316842944), all five positive queue fixtures compiled and executed successfully, all five negative fixtures were rejected, and 18 Java ownership regression tests passed. The aliasing tests exposed an actual defect on Java main, fixed in [merged compiler PR #767](https://github.com/ores-truffle-oreslang/oreslang-source.java/pull/767). The mirror compared Git blob SHA values to the source branches; no private checkout tokens or secrets were required.
 
-**Not verified:** LLVM native source lowering, LLVM IR/Clang execution, ASan/UBSan, multithreaded/actor stress, formal proofs and the generic K/V queue. The library remains an experimental bounded integer implementation.
+**Not verified for this new ticket change:** Java/Truffle six-fixture guest execution, saturation behavior at the numeric bound, or LLVM native source lowering, LLVM IR/Clang execution, ASan/UBSan, multithreaded/actor stress, formal proofs and the generic K/V queue. The library remains an experimental bounded integer implementation.
 
 ## Acceptance checklist
 
-1. Compile all five positive fixtures and all five negative fixtures using Java/Truffle; execute positives and capture return statuses, and prove negative cases fail for the intended semantic reasons.
+1. Compile all six positive fixtures and all five negative fixtures using Java/Truffle; execute positives and capture return statuses, and prove negative cases fail for the intended semantic reasons.
 2. Migrate the exact same files to LLVM without source ifdefs. Check LLVM verifier, Clang execution, ASan/UBSan and platform ABI behavior.
 3. Generate property histories with an independent ordered key list, compare results on every operation and assert validate().
 4. Add negative compiler tests for aliasing, mutation during iteration, borrowed state after await, cross-actor queue transfer, stale node handles and writer/reader simultaneous admission.
@@ -56,7 +57,7 @@ A borrow checker can establish *memory access exclusion* under the correct owner
 
 Every mutating method now uses an explicit `mut self` receiver. Sources use multiline `if condition then` with no semicolon before `then`; [oreslang-format PR #35](https://github.com/ores-truffle-oreslang/oreslang-format/pull/35) updates the formatter for this canonical output. Statements on distinct lines may omit semicolons in Java's parser where the grammar permits, but internal `for` separators and other punctuation are not optional.
 
-The four backing arrays remain `let mut`: two-phase `initialize()` rebinds them after constructing full replacement storage. Stable `final mut` fields require a constructor-only allocation design and compiler changes documented in [FINAL_FIELDS_RFC.md](../docs/FINAL_FIELDS_RFC.md) and [Java issue #758](https://github.com/ores-truffle-oreslang/oreslang-source.java/issues/758).
+The five backing arrays remain `let mut`: two-phase `initialize()` rebinds them after constructing full replacement storage. Stable `final mut` fields require a constructor-only allocation design and compiler changes documented in [FINAL_FIELDS_RFC.md](../docs/FINAL_FIELDS_RFC.md) and [Java issue #758](https://github.com/ores-truffle-oreslang/oreslang-source.java/issues/758).
 
 ## 2026-10-12 follow-up hardening
 

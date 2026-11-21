@@ -62,7 +62,8 @@ final class LinkedQueueIntegrationTest {
 
     @TestFactory
     Stream<DynamicTest> validFixturesMustExecuteAndReturnZero() {
-        return Stream.of("smoke", "stress", "instances", "edge_cases", "relink_matrix")
+        return Stream.of("smoke", "stress", "instances", "edge_cases", "relink_matrix",
+                        "generation_tickets")
                 .map(name -> DynamicTest.dynamicTest(name, () -> {
                     String code = sourceWith("tests/" + name + ".ores", true);
                     var parsed = assertDoesNotThrow(() -> Parser.parse(code), name + " syntax");
