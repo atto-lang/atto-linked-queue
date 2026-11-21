@@ -27,6 +27,7 @@ Not ported yet: arbitrary generic key/value types, unbounded growth, hashing, ra
 - tests/relink_matrix.ores: singleton capacity, insertion at both ends, middle removal, key reuse and FIFO draining (executed).
 - tests/instances.ores: backing-array isolation and snapshot independence.
 - tests/generation_tickets.ores: generation starts at 1, advances on each re-admission, remains stable after rejected duplicate insertion, rejects stale reads/removal after unlink and clear, and preserves unrelated ticket validity.
+- tests/integration/java/LinkedQueueTicketDifferentialTest.java: independent Java state-machine oracle driving real Oreslang source, with mandatory directed transitions and three 48-step seeded traces; **unexecuted** on the current draft head.
 - tests/negative/aliasing.ores and tests/negative/double_mut_borrow.ores: expected rejection of overlapping exclusive aliases.
 - tests/negative/readonly_receiver.ores and tests/negative/readonly_binding.ores: expected rejection of mutation through readonly access.
 - tests/negative/escaped_mutation.ores: expected rejection of external mutable field access.
