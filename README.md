@@ -43,3 +43,9 @@ This describes intended scope, not a verified feature matrix. Consult the source
 AttoLang is the canonical project name; new source, examples and documentation use `.atto` and the `atto-lang` repository organization. This README defines scope, not feature readiness.
 
 **Acceptance:** name exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
+
+## Bounded queue reference (host-only)
+
+`reference/bounded_queue.py` now models distinct `ACCEPTED`, `FULL` and `CLOSED` admissions, bounded FIFO ordering, idempotent monotonic close, and draining items after closure without losing admitted `None` values. `done` becomes true only when closed **and** drained. Run `python3 -m unittest discover -s tests -v` for host-only lifecycle and boundary checks.
+
+This single-threaded Python model is **not** the native Atto linked-queue runtime: it proves neither lock freedom, linearizability under races, safe actor ownership transfer nor zero allocation. An actual Atto implementation needs concurrent interleaving tests and per-backend execution receipts.
