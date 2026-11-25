@@ -43,3 +43,11 @@ This describes intended scope, not a verified feature matrix. Consult the source
 AttoLang is the canonical project name; new source, examples and documentation use `.atto` and the `atto-lang` repository organization. This README defines scope, not feature readiness.
 
 **Acceptance:** name exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
+
+## Legacy provenance and transfer verification
+
+The historical predecessor was `ores-truffle-oreslang/oreslang-linked-queue`. The present checkout is `atto-lang/atto-linked-queue`; matching names or imported history do not prove preserved numeric repository identity or runtime parity. Preserve working legacy `.ores` inputs and historical package/CLI aliases until compiler-backed replacements and consumers are verified. New source follows canonical `.atto` contracts.
+
+Portable bounded queue and collection semantics belong here; operating-system scheduler internals and managed cloud message brokers do not. [atto-lang](https://github.com/atto-lang) maintains language, portable libraries and tooling; [atto-co](https://github.com/atto-co) separately governs commercial deployment, tenancy, identity and billing. Further original-ID transfers or commercial carve-outs require separate owner authorization and independent security review. This document authorizes no transfer or private-source mirror.
+
+Before an authorized transfer, coordinate in [migration issue #26](https://github.com/ores-truffle-oreslang/.github/issues/26) and review the authorized runbook. Record source and target administrators, numeric repository ID, exact SHA/tree, history, visibility, access and rulesets, PRs/issues, releases, packages, consumers, CI/runners, secrets, deploy keys, apps, webhooks, Pages and rollback ownership. Verify unchanged ID/history/tree and restored controls after transfer, then execute exact-head tests before changing consumers. Zero-step jobs are NOT_EXECUTED; host-only and source-free checks do not certify compiled guest execution or production capabilities.
